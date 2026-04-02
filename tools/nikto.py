@@ -1,10 +1,13 @@
 """Nikto web server scanner."""
 
-import json
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import time
 import re
 from urllib.parse import urlparse
-from .base import BaseTool, ToolResult
+from tools.base import BaseTool, ToolResult
 
 class NiktoTool(BaseTool):
     def run(self) -> ToolResult:
@@ -29,14 +32,8 @@ class NiktoTool(BaseTool):
         
         metadata["raw_output"] = stdout[:5000]
         
-        server_patterns = [
-            (r"Server: (.+)", "server"),
-            (r"+ OSVDB-\d+: (.+)", "osvdb"),
-            (r"+ /[\w/]+: (.+)", "path_issue")
-        ]
-        
         for line in stdout.split("\n"):
-            server_match = re.search(server_patterns[0][0], line)
+            server_match = re.search(r"Server: (.+)", line)
             if server_match:
                 metadata["server_info"]["server"] = server_match.group(1)
             

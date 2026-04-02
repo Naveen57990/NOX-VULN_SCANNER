@@ -1,12 +1,16 @@
 """Memory storage for scan results and findings."""
 
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import json
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 from dataclasses import dataclass, asdict
-from ..config import config
+from config import config
 
 @dataclass
 class Finding:
@@ -47,9 +51,11 @@ class ScanMetadata:
 class Memory:
     def __init__(self, scan_id: str):
         self.scan_id = scan_id
-        self.db_path = config.OUTPUT_DIR / f"{scan_id}.db"
-        self.findings: list[Finding] = []
-        self.metadata: Optional[ScanMetadata] = None
+        self.output_dir = Path(os.getenv("OUTPUT_DIR", "/app/output"))
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.db_path = self.output_dir / f"{scan_id}.db"
+        self.findings = []
+        self.metadata = None
         self._init_db()
     
     def _init_db(self):
@@ -121,12 +127,12 @@ class Memory:
         conn.commit()
         conn.close()
     
-    def get_findings(self, severity: Optional[str] = None) -> list[Finding]:
+    def get_findings(self, severity: Optional[str] = None):
         if severity:
             return [f for f in self.findings if f.severity == severity]
         return self.findings
     
-    def get_findings_by_tool(self, tool: str) -> list[Finding]:
+    def get_findings_by_tool(self, tool: str):
         return [f for f in self.findings if f.tool == tool]
     
     def get_summary(self) -> dict:
@@ -144,8 +150,9 @@ class Memory:
         if not self.findings:
             return 0.0
         total_score = 0
+        risk_scores = {"CRITICAL": 10, "HIGH": 7.5, "MEDIUM": 5, "LOW": 2.5, "INFO": 0}
         for finding in self.findings:
-            total_score += config.RISK_SCORES.get(finding.severity, 0)
+            total_score += risk_scores.get(finding.severity, 0)
         return min(10, total_score / max(len(self.findings), 1) * 2)
     
     def export_json(self, path: Path):
@@ -163,7 +170,7 @@ class Memory:
             pass
 
 class GlobalMemory:
-    _instances: dict[str, Memory] = {}
+    _instances = {}
     
     @classmethod
     def get_or_create(cls, scan_id: str) -> Memory:
@@ -172,7 +179,7 @@ class GlobalMemory:
         return cls._instances[scan_id]
     
     @classmethod
-    def get(cls, scan_id: str) -> Optional[Memory]:
+    def get(cls, scan_id: str):
         return cls._instances.get(scan_id)
     
     @classmethod

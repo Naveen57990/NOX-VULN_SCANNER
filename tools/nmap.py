@@ -1,9 +1,13 @@
 """Nmap port and service scanner."""
 
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import re
 import time
 from urllib.parse import urlparse
-from .base import BaseTool, ToolResult
+from tools.base import BaseTool, ToolResult
 
 class NmapTool(BaseTool):
     def run(self) -> ToolResult:

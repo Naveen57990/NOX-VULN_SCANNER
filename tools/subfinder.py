@@ -1,10 +1,14 @@
 """Subfinder subdomain enumeration tool."""
 
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import shutil
 import json
 import time
 from urllib.parse import urlparse
-from .base import BaseTool, ToolResult
+from tools.base import BaseTool, ToolResult
 
 class SubfinderTool(BaseTool):
     def run(self) -> ToolResult:

@@ -1,18 +1,22 @@
 """Base tool interface for all security tools."""
 
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from abc import ABC, abstractmethod
 from typing import Optional
 from dataclasses import dataclass
 import subprocess
 import json
-from ..memory import Finding
+from memory import Finding
 
 @dataclass
 class ToolResult:
     success: bool
     tool_name: str
     raw_output: str
-    findings: list[Finding]
+    findings: list
     metadata: dict
     error: Optional[str] = None
     duration: float = 0
@@ -27,7 +31,7 @@ class BaseTool(ABC):
     def run(self) -> ToolResult:
         pass
     
-    def execute(self, command: list[str], check: bool = False) -> tuple[str, str, int]:
+    def execute(self, command: list, check: bool = False) -> tuple:
         try:
             result = subprocess.run(
                 command,

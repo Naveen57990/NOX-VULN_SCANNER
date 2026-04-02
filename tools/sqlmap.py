@@ -1,9 +1,12 @@
 """SQLMap SQL injection scanner."""
 
-import json
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import time
 from urllib.parse import urlparse
-from .base import BaseTool, ToolResult
+from tools.base import BaseTool, ToolResult
 
 class SqlmapTool(BaseTool):
     def run(self) -> ToolResult:

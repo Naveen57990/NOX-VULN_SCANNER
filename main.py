@@ -4,9 +4,11 @@ A production-ready vulnerability scanning system that integrates multiple securi
 and uses AI to analyze and prioritize findings.
 """
 
-import argparse
 import sys
-import json
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import argparse
 from datetime import datetime
 from pathlib import Path
 
@@ -19,13 +21,7 @@ from reports import generate_report
 def parse_args():
     parser = argparse.ArgumentParser(
         description="AI-Powered Vulnerability Scanner",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  python main.py --url https://example.com
-  python main.py --url https://example.com --scan-type web
-  python main.py --url https://example.com --output ./reports --format json,html
-        """
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
     parser.add_argument("--url", "-u", required=True, help="Target URL to scan")
@@ -33,7 +29,7 @@ Examples:
     parser.add_argument("--scan-type", "-t", default="full",
                         choices=["full", "recon", "web", "directories", "fuzzing", "subdomains", "exploitation"],
                         help="Type of scan to perform (default: full)")
-    parser.add_argument("--output", "-o", default=str(config.OUTPUT_DIR), help="Output directory")
+    parser.add_argument("--output", "-o", default="/app/output", help="Output directory")
     parser.add_argument("--format", "-f", default="markdown,json,html",
                         help="Report formats: markdown, json, html (comma-separated)")
     parser.add_argument("--no-ai", action="store_true", help="Disable AI analysis")
@@ -51,7 +47,6 @@ def main():
     print(f"\n[*] Target: {args.url}")
     print(f"[*] Scan Type: {args.scan_type}")
     print(f"[*] Output: {args.output}")
-    print(f"[*] Report Formats: {args.format}")
     print()
     
     config.VERBOSE = args.verbose
@@ -88,17 +83,13 @@ def main():
         memory = GlobalMemory.get(orchestrator.scan_id)
         if memory:
             output_dir = Path(args.output)
+            output_dir.mkdir(parents=True, exist_ok=True)
             formats = [f.strip() for f in args.format.split(",")]
             reports = generate_report(memory, output_dir, formats)
             
             print(f"\n[+] Reports generated:")
             for fmt, path in reports.items():
-                if isinstance(path, Path):
-                    print(f"    - {fmt.upper()}: {path}")
-                elif isinstance(path, dict) and "markdown" not in fmt:
-                    print(f"    - {fmt.upper()}: {output_dir / f'{orchestrator.scan_id}_report.{fmt}'}")
-                else:
-                    print(f"    - {fmt.upper()}: {output_dir / f'{orchestrator.scan_id}_report.{fmt}'}")
+                print(f"    - {fmt.upper()}: {path}")
         
         end_time = datetime.now()
         duration = (end_time - start_time).total_seconds()

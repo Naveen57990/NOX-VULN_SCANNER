@@ -1,15 +1,16 @@
 """Report generation module."""
 
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
-from ..config import config
-from ..memory import Memory, Finding
-from ..ai import AIGenerator
+from ai import AIGenerator
 
 class ReportGenerator:
-    def __init__(self, memory: Memory):
+    def __init__(self, memory):
         self.memory = memory
         self.ai_generator = AIGenerator()
     
@@ -58,7 +59,7 @@ class ReportGenerator:
 ## Findings
 
 """
-        for i, finding in enumerate(sorted(findings, key=lambda x: self._severity_order(x.severity)), 1):
+        for i, finding in enumerate(sorted(findings, key=lambda x: self._severity_order(getattr(x, 'severity', 'INFO'))), 1):
             md += self._format_finding(finding, i)
         
         md += """
@@ -98,8 +99,7 @@ class ReportGenerator:
                 "scan_id": self.memory.scan_id,
                 "target_url": self.memory.metadata.target_url if self.memory.metadata else "Unknown",
                 "generated_at": datetime.utcnow().isoformat(),
-                "status": self.memory.metadata.status if self.memory.metadata else "Unknown",
-                "duration_seconds": self._calculate_duration()
+                "status": self.memory.metadata.status if self.memory.metadata else "Unknown"
             },
             "summary": {
                 "total_findings": len(findings),
@@ -107,7 +107,7 @@ class ReportGenerator:
                 "by_severity": summary["by_severity"],
                 "by_tool": summary["by_tool"]
             },
-            "findings": [f.to_dict() for f in findings]
+            "findings": [f.to_dict() if hasattr(f, 'to_dict') else f for f in findings]
         }
         
         with open(output_path, "w") as f:
@@ -125,41 +125,24 @@ class ReportGenerator:
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vulnerability Report - {metadata.target_url if metadata else 'Unknown'}</title>
+    <title>Vulnerability Report</title>
     <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 40px; background: #f5f5f5; }}
-        .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+        body {{ font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }}
+        .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; }}
         h1 {{ color: #333; border-bottom: 3px solid #007bff; padding-bottom: 10px; }}
-        h2 {{ color: #555; margin-top: 30px; }}
         .meta {{ background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; }}
-        .risk-score {{ font-size: 48px; font-weight: bold; text-align: center; padding: 20px; border-radius: 8px; }}
-        .risk-low {{ background: #d4edda; color: #155724; }}
-        .risk-medium {{ background: #fff3cd; color: #856404; }}
-        .risk-high {{ background: #f8d7da; color: #721c24; }}
-        .risk-critical {{ background: #721c24; color: white; }}
-        .severity-grid {{ display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin: 20px 0; }}
-        .severity-card {{ padding: 15px; border-radius: 5px; text-align: center; }}
-        .severity-critical {{ background: #dc3545; color: white; }}
-        .severity-high {{ background: #fd7e14; color: white; }}
-        .severity-medium {{ background: #ffc107; color: #333; }}
-        .severity-low {{ background: #20c997; color: white; }}
-        .severity-info {{ background: #17a2b8; color: white; }}
-        .finding {{ border: 1px solid #ddd; border-radius: 5px; padding: 20px; margin: 15px 0; }}
-        .finding-critical {{ border-left: 4px solid #dc3545; }}
-        .finding-high {{ border-left: 4px solid #fd7e14; }}
-        .finding-medium {{ border-left: 4px solid #ffc107; }}
-        .finding-low {{ border-left: 4px solid #20c997; }}
-        .finding-info {{ border-left: 4px solid #17a2b8; }}
-        .severity-badge {{ display: inline-block; padding: 4px 12px; border-radius: 3px; color: white; font-weight: bold; font-size: 12px; }}
-        .severity-badge.CRITICAL {{ background: #dc3545; }}
-        .severity-badge.HIGH {{ background: #fd7e14; }}
-        .severity-badge.MEDIUM {{ background: #ffc107; color: #333; }}
-        .severity-badge.LOW {{ background: #20c997; }}
-        .severity-badge.INFO {{ background: #17a2b8; }}
-        .tool-tag {{ background: #6c757d; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; }}
-        code {{ background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 14px; }}
-        .footer {{ text-align: center; margin-top: 40px; color: #666; font-size: 12px; }}
+        .finding {{ border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin: 10px 0; }}
+        .finding-CRITICAL {{ border-left: 4px solid #dc3545; }}
+        .finding-HIGH {{ border-left: 4px solid #fd7e14; }}
+        .finding-MEDIUM {{ border-left: 4px solid #ffc107; }}
+        .finding-LOW {{ border-left: 4px solid #20c997; }}
+        .finding-INFO {{ border-left: 4px solid #17a2b8; }}
+        .badge {{ display: inline-block; padding: 3px 8px; border-radius: 3px; color: white; font-size: 11px; font-weight: bold; }}
+        .badge.CRITICAL {{ background: #dc3545; }}
+        .badge.HIGH {{ background: #fd7e14; }}
+        .badge.MEDIUM {{ background: #ffc107; color: #333; }}
+        .badge.LOW {{ background: #20c997; }}
+        .badge.INFO {{ background: #17a2b8; }}
     </style>
 </head>
 <body>
@@ -168,32 +151,15 @@ class ReportGenerator:
         <div class="meta">
             <strong>Target:</strong> {metadata.target_url if metadata else 'Unknown'}<br>
             <strong>Scan ID:</strong> {self.memory.scan_id}<br>
-            <strong>Generated:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}<br>
-            <strong>Status:</strong> {metadata.status if metadata else 'Unknown'}
+            <strong>Risk Score:</strong> {risk_score:.1f}/10
         </div>
-        
-        <h2>Risk Score: {risk_score:.1f}/10</h2>
-        <div class="risk-score {self._risk_class(risk_score)}">{risk_score:.1f}</div>
-        
-        <h2>Findings by Severity</h2>
-        <div class="severity-grid">
-            <div class="severity-card severity-critical"><strong>{summary['by_severity'].get('CRITICAL', 0)}</strong><br>Critical</div>
-            <div class="severity-card severity-high"><strong>{summary['by_severity'].get('HIGH', 0)}</strong><br>High</div>
-            <div class="severity-card severity-medium"><strong>{summary['by_severity'].get('MEDIUM', 0)}</strong><br>Medium</div>
-            <div class="severity-card severity-low"><strong>{summary['by_severity'].get('LOW', 0)}</strong><br>Low</div>
-            <div class="severity-card severity-info"><strong>{summary['by_severity'].get('INFO', 0)}</strong><br>Info</div>
-        </div>
-        
-        <h2>Findings</h2>
+        <h2>Findings ({len(findings)} total)</h2>
 """
         
-        for finding in sorted(findings, key=lambda x: self._severity_order(x.severity)):
+        for finding in sorted(findings, key=lambda x: self._severity_order(getattr(x, 'severity', 'INFO'))):
             html += self._format_finding_html(finding)
         
-        html += f"""
-        <div class="footer">
-            <p>Generated by AI-Powered Vulnerability Scanner</p>
-        </div>
+        html += """
     </div>
 </body>
 </html>"""
@@ -203,34 +169,35 @@ class ReportGenerator:
         
         return html
     
-    def _format_finding(self, finding: Finding, index: int) -> str:
-        return f"""### {index}. {finding.name}
+    def _format_finding(self, finding, index: int) -> str:
+        name = getattr(finding, 'name', 'Unknown')
+        severity = getattr(finding, 'severity', 'INFO')
+        tool = getattr(finding, 'tool', 'Unknown')
+        url = getattr(finding, 'url', '')
+        desc = getattr(finding, 'description', '')
+        
+        return f"""### {index}. {name}
 
-- **Severity:** {finding.severity}
-- **Tool:** {finding.tool}
-- **URL:** `{finding.url}`
-{f"- **Parameter:** `{finding.parameter}`" if finding.parameter else ""}
-{f"- **CVE/CWE:** {finding.cve}" if finding.cve else ""}
-{f"- **CVSS:** {finding.cvss}" if finding.cvss else ""}
+- **Severity:** {severity}
+- **Tool:** {tool}
+- **URL:** `{url}`
 
-**Description:**  
-{finding.description}
-
-{f"**Evidence:**\n```\n{finding.evidence}\n```" if finding.evidence else ""}
-
-{f"**Remediation:**\n{finding.remediation}" if finding.remediation else ""}
+**Description:** {desc}
 
 ---
 """
     
-    def _format_finding_html(self, finding: Finding) -> str:
-        return f"""        <div class="finding finding-{finding.severity.lower()}">
-            <h3>{finding.name} <span class="severity-badge {finding.severity}">{finding.severity}</span> <span class="tool-tag">{finding.tool}</span></h3>
-            <p><strong>URL:</strong> <code>{finding.url}</code></p>
-            {f"<p><strong>Parameter:</strong> <code>{finding.parameter}</code></p>" if finding.parameter else ""}
-            <p><strong>Description:</strong> {finding.description}</p>
-            {f"<p><strong>Evidence:</strong></p><pre>{finding.evidence}</pre>" if finding.evidence else ""}
-            {f"<p><strong>Remediation:</strong> {finding.remediation}</p>" if finding.remediation else ""}
+    def _format_finding_html(self, finding) -> str:
+        name = getattr(finding, 'name', 'Unknown')
+        severity = getattr(finding, 'severity', 'INFO')
+        tool = getattr(finding, 'tool', 'Unknown')
+        url = getattr(finding, 'url', '')
+        desc = getattr(finding, 'description', '')
+        
+        return f"""        <div class="finding finding-{severity}">
+            <strong>{name}</strong> <span class="badge {severity}">{severity}</span><br>
+            <small>Tool: {tool} | URL: {url}</small><br>
+            <p>{desc}</p>
         </div>
 """
     
@@ -238,43 +205,20 @@ class ReportGenerator:
         order = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3, "INFO": 4}
         return order.get(severity, 5)
     
-    def _risk_class(self, score: float) -> str:
-        if score >= 9: return "risk-critical"
-        if score >= 7: return "risk-high"
-        if score >= 4: return "risk-medium"
-        return "risk-low"
+    def _basic_summary(self, findings, risk_score: float) -> str:
+        return f"This vulnerability assessment identified {len(findings)} findings with an overall risk score of {risk_score:.1f}/10."
     
-    def _basic_summary(self, findings: list, risk_score: float) -> str:
-        return f"""This vulnerability assessment identified {len(findings)} findings with an overall risk score of {risk_score}/10.
-
-Critical and high severity findings require immediate attention. Medium severity findings should be addressed based on available resources. Low and informational findings are recommended for long-term security improvement.
-"""
-    
-    def _calculate_duration(self) -> Optional[float]:
-        if self.memory.metadata and self.memory.metadata.start_time and self.memory.metadata.end_time:
-            start = datetime.fromisoformat(self.memory.metadata.start_time)
-            end = datetime.fromisoformat(self.memory.metadata.end_time)
-            return (end - start).total_seconds()
-        return None
-    
-    def _generate_recommendations(self, findings: list) -> str:
-        critical = [f for f in findings if f.severity == "CRITICAL"]
-        high = [f for f in findings if f.severity == "HIGH"]
-        
-        recs = "### Immediate Actions (Critical Findings)\n\n"
-        for f in critical:
-            recs += f"- **{f.name}**: {f.remediation or 'Review and remediate immediately.'}\n"
-        
-        recs += "\n### Short-term Actions (High Findings)\n\n"
-        for f in high[:5]:
-            recs += f"- **{f.name}**: {f.remediation or 'Address within 30 days.'}\n"
-        
+    def _generate_recommendations(self, findings) -> str:
+        recs = "### Priority Actions\n\n"
+        critical_high = [f for f in findings if getattr(f, 'severity', '') in ["CRITICAL", "HIGH"]]
+        for f in critical_high[:5]:
+            recs += f"- **{getattr(f, 'name', 'Unknown')}**: Review and remediate\n"
         return recs
 
 
-def generate_report(memory: Memory, output_dir: Path = None, formats: list = None) -> dict:
+def generate_report(memory, output_dir: Path = None, formats = None) -> dict:
     if output_dir is None:
-        output_dir = config.OUTPUT_DIR
+        output_dir = Path("/app/output")
     output_dir.mkdir(exist_ok=True, parents=True)
     
     if formats is None:
@@ -285,14 +229,17 @@ def generate_report(memory: Memory, output_dir: Path = None, formats: list = Non
     
     if "markdown" in formats:
         md_path = output_dir / f"{memory.scan_id}_report.md"
-        results["markdown"] = generator.generate_markdown(md_path)
+        results["markdown"] = str(md_path)
+        generator.generate_markdown(md_path)
     
     if "json" in formats:
         json_path = output_dir / f"{memory.scan_id}_report.json"
-        results["json"] = generator.generate_json(json_path)
+        results["json"] = str(json_path)
+        generator.generate_json(json_path)
     
     if "html" in formats:
         html_path = output_dir / f"{memory.scan_id}_report.html"
-        results["html"] = generator.generate_html(html_path)
+        results["html"] = str(html_path)
+        generator.generate_html(html_path)
     
     return results

@@ -1,16 +1,20 @@
 """Orchestrator module that coordinates all security tools."""
 
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import time
 from datetime import datetime
 from typing import Optional
-from ..config import config
-from ..memory import GlobalMemory, ScanMetadata
-from ..tools import (
+from config import config
+from memory import GlobalMemory, ScanMetadata
+from tools import (
     NmapTool, ZapTool, SqlmapTool, NiktoTool,
     GobusterTool, FfufTool, SubfinderTool,
     has_web_service, has_database, get_open_ports
 )
-from ..ai import AIAnalyzer, AIGenerator
+from ai import AIAnalyzer, AIGenerator
 
 class ScanOrchestrator:
     def __init__(self, target_url: str, scan_id: str = None):
