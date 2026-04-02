@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Vulnerability Scanner
 
 ## Project Structure
@@ -34,3 +35,7 @@ Push to trigger workflow_dispatch, then manually run with target URL.
 - `OPENAI_API_KEY` / `ANTHROPIC_API_KEY`: AI analysis
 - `AUTHORIZED_TARGETS`: Allowed targets
 - `VERBOSE`: Debug output
+=======
+# NOX-VULN_SCANNER
+.
+>>>>>>> d754de1c8cc25f676ea7dbe78f1e5148beae2b2f
