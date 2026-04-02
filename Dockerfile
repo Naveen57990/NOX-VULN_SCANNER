@@ -1,6 +1,7 @@
 FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONPATH=/app
 
 RUN apt-get update && \
     apt-get install -y \
@@ -38,4 +39,4 @@ COPY . .
 
 RUN mkdir -p /app/output && chmod 777 /app/output
 
-CMD ["python3", "main.py"]
+CMD ["python3", "-u", "main.py"]
