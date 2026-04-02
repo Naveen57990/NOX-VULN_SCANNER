@@ -1,25 +1,33 @@
-FROM kalilinux/kali-rolling
+FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
-RUN echo "deb http://http.kali.org/kali kali-rolling main non-free contrib" > /etc/apt/sources.list && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends \
+RUN apt-get update && \
+    apt-get install -y \
     python3 \
     python3-pip \
+    wget \
+    curl \
+    git \
+    unzip \
+    default-jre-headless \
     nmap \
     nikto \
     sqlmap \
-    gobuster \
-    ffuf \
-    curl \
-    wget \
-    git \
-    golang-go \
-    default-jre-headless \
     && rm -rf /var/lib/apt/lists/*
-RUN go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest && \
-    mv ~/go/bin/subfinder /usr/local/bin/
+RUN wget -q https://github.com/OJ/gobuster/releases/download/v3.6/gobuster_3.6_linux_amd64.tar.gz && \
+    tar -xzf gobuster_3.6_linux_amd64.tar.gz && \
+    mv gobuster /usr/local/bin/ && \
+    rm gobuster_3.6_linux_amd64.tar.gz
+RUN wget -q https://github.com/ffuf/ffuf/releases/download/v2.1.0/ffuf_2.1.0_linux_amd64.tar.gz && \
+    tar -xzf ffuf_2.1.0_linux_amd64.tar.gz && \
+    mv ffuf /usr/local/bin/ && \
+    rm ffuf_2.1.0_linux_amd64.tar.gz
+RUN wget -q https://github.com/projectdiscovery/subfinder/releases/download/v2.6.6/subfinder_2.6.6_linux_amd64.zip && \
+    unzip subfinder_2.6.6_linux_amd64.zip && \
+    mv subfinder /usr/local/bin/ && \
+    rm subfinder_2.6.6_linux_amd64.zip
 WORKDIR /app
+COPY requirements.txt .
 RUN pip3 install requests anthropic openai
 COPY . .
-RUN mkdir -p /app/output && chmod 777 /app/output
-ENTRYPOINT ["python3", "main.py"]
+RUN mkdir -p /app/output
+CMD ["python3", "main.py"]
