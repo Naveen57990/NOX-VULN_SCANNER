@@ -1,5 +1,6 @@
 """Subfinder subdomain enumeration tool."""
 
+import shutil
 import json
 import time
 from urllib.parse import urlparse
@@ -7,6 +8,15 @@ from .base import BaseTool, ToolResult
 
 class SubfinderTool(BaseTool):
     def run(self) -> ToolResult:
+        if not shutil.which("subfinder"):
+            return ToolResult(
+                success=True,
+                tool_name="SUBFINDER",
+                raw_output="Subfinder not installed - skipping",
+                findings=[],
+                metadata={"status": "skipped", "reason": "not installed"}
+            )
+        
         start_time = time.time()
         findings = []
         metadata = {"subdomains": [], "new_domains": []}

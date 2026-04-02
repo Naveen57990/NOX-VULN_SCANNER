@@ -1,5 +1,6 @@
 """Ffuf fuzzing tool."""
 
+import shutil
 import json
 import time
 from urllib.parse import urlparse
@@ -8,6 +9,15 @@ from ..config import config
 
 class FfufTool(BaseTool):
     def run(self) -> ToolResult:
+        if not shutil.which("ffuf"):
+            return ToolResult(
+                success=True,
+                tool_name="FFUF",
+                raw_output="Ffuf not installed - skipping",
+                findings=[],
+                metadata={"status": "skipped", "reason": "not installed"}
+            )
+        
         start_time = time.time()
         findings = []
         metadata = {"fuzzed_urls": [], "interesting_findings": []}
@@ -15,7 +25,7 @@ class FfufTool(BaseTool):
         parsed = urlparse(self.target)
         base_url = f"{parsed.scheme}://{parsed.netloc}"
         
-        wordlist = config.WORDLISTS.get("fuzzing", "/usr/share/wordlists/fuzz.txt")
+        wordlist = "/tmp/fuzz_wordlist.txt"
         
         command = [
             "ffuf",

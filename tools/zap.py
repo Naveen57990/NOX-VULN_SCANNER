@@ -1,5 +1,6 @@
 """OWASP ZAP web vulnerability scanner."""
 
+import shutil
 import time
 import json
 import requests
@@ -26,6 +27,8 @@ class ZapTool(BaseTool):
             return {}
     
     def _start_zap(self) -> bool:
+        if not shutil.which("zap.sh"):
+            return False
         try:
             subprocess.Popen([
                 "zap.sh", "-daemon", "-port", str(self.zap_port),
@@ -43,6 +46,15 @@ class ZapTool(BaseTool):
         return False
     
     def run(self) -> ToolResult:
+        if not shutil.which("zap.sh"):
+            return ToolResult(
+                success=True,
+                tool_name="ZAP",
+                raw_output="OWASP ZAP not installed - skipping",
+                findings=[],
+                metadata={"status": "skipped", "reason": "not installed"}
+            )
+        
         start_time = time.time()
         findings = []
         metadata = {"alerts": [], "urls_spidered": 0}

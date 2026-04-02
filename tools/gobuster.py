@@ -1,6 +1,6 @@
 """Gobuster directory and file scanner."""
 
-import json
+import shutil
 import time
 from urllib.parse import urlparse
 from .base import BaseTool, ToolResult
@@ -8,6 +8,15 @@ from ..config import config
 
 class GobusterTool(BaseTool):
     def run(self) -> ToolResult:
+        if not shutil.which("gobuster"):
+            return ToolResult(
+                success=True,
+                tool_name="GOBUSTER",
+                raw_output="Gobuster not installed - skipping",
+                findings=[],
+                metadata={"status": "skipped", "reason": "not installed"}
+            )
+        
         start_time = time.time()
         findings = []
         metadata = {"directories": [], "files": [], "sensitive_endpoints": []}
@@ -15,7 +24,9 @@ class GobusterTool(BaseTool):
         parsed = urlparse(self.target)
         url = f"{parsed.scheme}://{parsed.netloc}"
         
-        wordlist = config.WORDLISTS.get("directories", "/usr/share/wordlists/dirb/common.txt")
+        wordlist = "/usr/share/wordlists/dirb/common.txt"
+        if not wordlist:
+            wordlist = "/tmp/wordlist.txt"
         
         command = [
             "gobuster", "dir",

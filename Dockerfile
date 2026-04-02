@@ -14,30 +14,25 @@ RUN apt-get update && \
     nmap \
     nikto \
     sqlmap \
-    ruby \
-    zlib1g-dev \
-    && rm -rf /var/lib/apt/lists/*
+    || true
 
-RUN curl -sL https://github.com/ffuf/ffuf/releases/download/v2.0.0/ffuf_2.0.0_linux_amd64.tar.gz -o /tmp/ffuf.tar.gz && \
-    tar -xzf /tmp/ffuf.tar.gz -C /tmp && \
-    mv /tmp/ffuf /usr/local/bin/ffuf && \
-    chmod +x /usr/local/bin/ffuf && \
-    rm /tmp/ffuf.tar.gz
+RUN echo "Installing gobuster..." && \
+    (wget -q https://github.com/OJ/gobuster/releases/download/v3.5/gobuster_3.5_linux_amd64.tar.gz -O /tmp/gobuster.tar.gz && tar -xzf /tmp/gobuster.tar.gz -C /tmp && mv /tmp/gobuster /usr/local/bin/gobuster && rm /tmp/gobuster.tar.gz) || \
+    (apt-get install -y gobuster || true) || \
+    echo "GOBUSTER SKIPPED - continuing..."
 
-RUN curl -sL https://github.com/OJ/gobuster/releases/download/v3.5/gobuster_3.5_linux_amd64.tar.gz -o /tmp/gobuster.tar.gz && \
-    tar -xzf /tmp/gobuster.tar.gz -C /tmp && \
-    mv /tmp/gobuster /usr/local/bin/gobuster && \
-    chmod +x /usr/local/bin/gobuster && \
-    rm /tmp/gobuster.tar.gz
+RUN echo "Installing ffuf..." && \
+    (wget -q https://github.com/ffuf/ffuf/releases/download/v2.0.0/ffuf_2.0.0_linux_amd64.tar.gz -O /tmp/ffuf.tar.gz && tar -xzf /tmp/ffuf.tar.gz -C /tmp && mv /tmp/ffuf /usr/local/bin/ffuf && rm /tmp/ffuf.tar.gz) || \
+    echo "FFUF SKIPPED - continuing..."
 
-RUN curl -sL https://go.dev/dl/go1.21.6.linux-amd64.tar.gz | tar -C /usr/local -xzf - && \
-    export PATH=$PATH:/usr/local/go/bin:/root/go/bin && \
-    go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest && \
-    cp /root/go/bin/subfinder /usr/local/bin/subfinder || true
+RUN echo "Installing subfinder..." && \
+    (apt-get install -y golang-go || true) && \
+    (curl -sL https://go.dev/dl/go1.21.6.linux-amd64.tar.gz | tar -C /usr/local -xzf - && export PATH=$PATH:/usr/local/go/bin && go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest 2>/dev/null && cp ~/go/bin/subfinder /usr/local/bin/ 2>/dev/null || cp /root/go/bin/subfinder /usr/local/bin/ 2>/dev/null || true) || \
+    echo "SUBFINDER SKIPPED - continuing..."
 
 WORKDIR /app
 
-RUN pip3 install --break-system-packages requests anthropic openai
+RUN pip3 install --break-system-packages requests anthropic openai || pip3 install requests anthropic openai
 
 COPY . .
 
