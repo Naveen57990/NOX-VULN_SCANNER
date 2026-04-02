@@ -14,9 +14,12 @@ RUN echo "deb http://http.kali.org/kali kali-rolling main non-free contrib" > /e
     wget \
     git \
     default-jre-headless \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
-RUN wget -q https://github.com/projectdiscovery/subfinder/releases/download/v2.6.1/subfinder_2.6.1_linux_amd64.zip \
-    && unzip subfinder_2.6.1_linux_amd64.zip && mv subfinder /usr/local/bin/ && rm subfinder_2.6.1_linux_amd64.zip
+RUN wget -q https://github.com/projectdiscovery/subfinder/releases/download/v2.6.1/subfinder_2.6.1_linux_amd64.zip && \
+    unzip subfinder_2.6.1_linux_amd64.zip && \
+    mv subfinder /usr/local/bin/ && \
+    rm subfinder_2.6.1_linux_amd64.zip
 WORKDIR /app
 RUN pip3 install --no-cache-dir requests anthropic openai
 COPY . /app/
