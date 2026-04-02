@@ -19,9 +19,6 @@ on:
           - fuzzing
           - subdomains
           - exploitation
-env:
-  TARGET_URL: ${{ inputs.target_url }}
-  SCAN_TYPE: ${{ inputs.scan_type }}
 jobs:
   scan:
     name: Run Vulnerability Scan
@@ -45,14 +42,14 @@ jobs:
       
       - name: Run vulnerability scan
         run: |
+          mkdir -p output
           docker run --rm \
-            -e TARGET_URL="${{ env.TARGET_URL }}" \
-            -e SCAN_TYPE="${{ env.SCAN_TYPE }}" \
             -e OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
             -e AI_PROVIDER="openai" \
             -v ${{ github.workspace }}/output:/app/output \
+            -w /app \
             vuln-scanner:latest \
-            python3 main.py --url "${{ env.TARGET_URL }}" --scan-type "${{ env.SCAN_TYPE }}"
+            /bin/bash -c "python3 main.py --url '${{ inputs.target_url }}' --scan-type '${{ inputs.scan_type }}' --output /app/output"
       
       - name: Upload reports
         uses: actions/upload-artifact@v4
