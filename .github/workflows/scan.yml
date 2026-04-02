@@ -1,0 +1,84 @@
+name: Vulnerability Scanner
+on:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Target URL to scan'
+        required: true
+        type: string
+      scan_type:
+        description: 'Type of scan'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - recon
+          - web
+          - directories
+          - fuzzing
+          - subdomains
+          - exploitation
+      report_format:
+        description: 'Report formats (comma-separated)'
+        required: false
+        default: 'markdown,json,html'
+        type: string
+env:
+  TARGET_URL: ${{ inputs.target_url }}
+  SCAN_TYPE: ${{ inputs.scan_type }}
+  REPORT_FORMAT: ${{ inputs.report_format }}
+jobs:
+  scan:
+    name: Run Vulnerability Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          load: true
+          tags: vuln-scanner:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Run vulnerability scan
+        run: |
+          docker run --rm \
+            -e TARGET_URL="${{ env.TARGET_URL }}" \
+            -e SCAN_TYPE="${{ env.SCAN_TYPE }}" \
+            -e REPORT_FORMAT="${{ env.REPORT_FORMAT }}" \
+            -e OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+            -e AI_PROVIDER="openai" \
+            -e VERBOSE="${{ vars.VERBOSE || 'false' }}" \
+            -v ${{ github.workspace }}/output:/app/output \
+            vuln-scanner:latest \
+            --url "${{ env.TARGET_URL }}" \
+            --scan-type "${{ env.SCAN_TYPE }}" \
+            --output /app/output \
+            --format "${{ env.REPORT_FORMAT }}"
+      
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-reports-${{ github.run_number }}
+          path: output/*
+          retention-days: 30
+      
+      - name: Display scan results
+        run: |
+          echo "## Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if ls output/*.md 1>/dev/null 2>&1; then
+            head -60 output/*.md 2>/dev/null || echo "Reports generated. Check artifacts." >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Reports available in artifacts." >> $GITHUB_STEP_SUMMARY
