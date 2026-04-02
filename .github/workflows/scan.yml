@@ -21,6 +21,7 @@ on:
           - exploitation
 env:
   TARGET_URL: ${{ inputs.target_url }}
+  SCAN_TYPE: ${{ inputs.scan_type }}
 jobs:
   scan:
     name: Run Vulnerability Scan
@@ -46,12 +47,12 @@ jobs:
         run: |
           docker run --rm \
             -e TARGET_URL="${{ env.TARGET_URL }}" \
+            -e SCAN_TYPE="${{ env.SCAN_TYPE }}" \
             -e OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
             -e AI_PROVIDER="openai" \
             -v ${{ github.workspace }}/output:/app/output \
             vuln-scanner:latest \
-            --url "${{ env.TARGET_URL }}" \
-            --scan-type "${{ inputs.scan_type }}"
+            python3 main.py --url "${{ env.TARGET_URL }}" --scan-type "${{ env.SCAN_TYPE }}"
       
       - name: Upload reports
         uses: actions/upload-artifact@v4
